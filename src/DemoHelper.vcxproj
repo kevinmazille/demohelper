@@ -217,10 +217,8 @@
     <ClCompile Include="Commands.cpp" />
     <ClCompile Include="DemoHelper.cpp" />
     <ClCompile Include="Graphics.cpp" />
-    <ClCompile Include="MagnifierWindow.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="OptionsDlg.cpp" />
-    <ClCompile Include="RectSelectionWnd.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -241,10 +239,8 @@
     <ClInclude Include="..\sktoolslib\SimpleIni.h" />
     <ClInclude Include="..\sktoolslib\StringUtils.h" />
     <ClInclude Include="DemoHelper.h" />
-    <ClInclude Include="MagnifierWindow.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MemDC.h" />
-    <ClInclude Include="RectSelectionWnd.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

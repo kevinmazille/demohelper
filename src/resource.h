@@ -15,16 +15,13 @@
 #define IDD_OPTIONS                     129
 #define IDR_HELP                        132
 #define IDC_WEBLINK                     1002
-#define IDC_HOTKEY_ZOOMMODE             1003
 #define IDC_HOTKEY_DRAWMODE             1004
-#define IDC_HOTKEY_LENSMODE             1005
 #define IDC_FADESECONDS                 1006
 #define IDC_CURRENTMONITOR              1008
 #define IDC_ALLMONITORS                 1009
 #define IDC_SYSLINK1                    1012
 #define ID_TRAYCONTEXT_OPTIONS          32771
 #define ID_TRAYCONTEXT_ABOUT            32772
-#define ID_TRAYCONTEXT_ZOOM             32773
 #define ID_TRAYCONTEXT_DRAW             32774
 #define ID_CMD_UNDOLINE                 32775
 #define ID_CMD_QUITMODE                 32776
@@ -34,9 +31,7 @@
 #define ID_CMD_PREVCOLOR                32780
 #define ID_CMD_CLEARLINES               32781
 #define ID_CMD_QUICKTOMARKER            32782
-#define ID_CMD_ACCEPT                   32783
 #define ID_CMD_TOGGLEROP                32785
-#define ID_CMD_INLINEZOOM               32787
 #define ID_TRAYCONTEXT_HELP             32790
 #define ID_CMD_CLEARSCREEN              32791
 #define ID_CMD_COLOR1                   32793

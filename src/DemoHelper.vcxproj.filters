@@ -66,9 +66,6 @@
     <ClInclude Include="..\sktoolslib\Registry.h">
       <Filter>sktoolslib</Filter>
     </ClInclude>
-    <ClInclude Include="MagnifierWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\sktoolslib\BaseDialog.h">
       <Filter>sktoolslib</Filter>
     </ClInclude>
@@ -77,9 +74,6 @@
     </ClInclude>
     <ClInclude Include="..\sktoolslib\BaseWindowD2D.h">
       <Filter>sktoolslib</Filter>
-    </ClInclude>
-    <ClInclude Include="RectSelectionWnd.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\sktoolslib\InfoRtfDialog.h">
       <Filter>sktoolslib</Filter>
@@ -163,9 +157,6 @@
     <ClCompile Include="..\sktoolslib\Registry.cpp">
       <Filter>sktoolslib</Filter>
     </ClCompile>
-    <ClCompile Include="MagnifierWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\sktoolslib\BaseDialog.cpp">
       <Filter>sktoolslib</Filter>
     </ClCompile>
@@ -174,9 +165,6 @@
     </ClCompile>
     <ClCompile Include="..\sktoolslib\BaseWindowD2D.cpp">
       <Filter>sktoolslib</Filter>
-    </ClCompile>
-    <ClCompile Include="RectSelectionWnd.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\sktoolslib\InfoRtfDialog.cpp">
       <Filter>sktoolslib</Filter>

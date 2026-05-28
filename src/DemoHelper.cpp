@@ -46,10 +46,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
         return -1;
     OnOutOfScope(CoUninitialize());
 
-    MagInitialize();
-    OnOutOfScope(MagUninitialize());
-    OnOutOfScope(Animator::Instance().ShutDown());
-
     g_hResource = hInstance;
     g_hInstance = hInstance;
 

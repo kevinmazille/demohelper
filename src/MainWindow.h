@@ -23,21 +23,15 @@
 #include "resource.h"
 #include "hyperlink.h"
 #include "ResString.h"
-#include "AnimationManager.h"
-#include "MagnifierWindow.h"
 #include <shellapi.h>
 #include <vector>
 #include <deque>
 #include <string>
 
 #define DRAW_HOTKEY 100
-#define ZOOM_HOTKEY 101
-#define LENS_HOTKEY 102
 
 #define TIMER_ID_DRAW 101
-#define TIMER_ID_ZOOM 102
 #define TIMER_ID_FADE 103
-#define TIMER_ID_LENS 104
 
 #define LINE_ALPHA 100
 
@@ -83,8 +77,6 @@ public:
         , hDesktopCompatibleBitmap(nullptr)
         , hOldBmp(nullptr)
         , m_bDrawing(false)
-        , m_zoomFactor(1.2f)
-        , m_bZooming(false)
         , m_colorIndex(1)
         , m_currentPenWidth(6)
         , m_currentAlpha(LINE_ALPHA)
@@ -96,9 +88,6 @@ public:
         , m_oldPenWidth(6)
         , m_oldColorIndex(0)
         , m_oldAlpha(0)
-        , m_bInlineZoom(false)
-        , m_ptInlineZoomStartPoint({})
-        , m_ptInlineZoomEndPoint({})
         , m_rcScreen({0})
     {
         SetWindowTitle(static_cast<LPCTSTR>(ResString(hResource, IDS_APP_TITLE)));
@@ -111,8 +100,7 @@ public:
         m_colors[6]   = RGB(0, 0, 150);
         m_colors[7]   = RGB(0, 0, 0);
         m_colors[8]   = RGB(150, 150, 150);
-        m_colors[9]   = RGB(0, 255, 255);
-        m_animVarZoom = Animator::Instance().CreateAnimationVariable(1.2, 1.2);
+        m_colors[9] = RGB(0, 255, 255);
     };
     ~CMainWindow(){};
 
@@ -129,10 +117,6 @@ protected:
 
     bool    StartPresentationMode();
     bool    EndPresentationMode();
-    bool    StartInlineZoom();
-    bool    StartZoomingMode();
-    bool    EndZoomingMode();
-    bool    DrawZoom(HDC hdc, POINT pt);
     HCURSOR CreateDrawCursor(COLORREF color, int penwidth);
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -148,9 +132,7 @@ protected:
     HBITMAP        hDesktopCompatibleBitmap;
     HBITMAP        hOldBmp;
 
-    bool  m_bDrawing;
-    float m_zoomFactor;
-    bool  m_bZooming;
+    bool m_bDrawing;
 
     int  m_colorIndex;
     int  m_currentPenWidth;
@@ -169,17 +151,10 @@ protected:
     int  m_oldColorIndex;
     BYTE m_oldAlpha;
 
-    bool  m_bInlineZoom;
-    POINT m_ptInlineZoomStartPoint;
-    POINT m_ptInlineZoomEndPoint;
-
     bool m_bTextMode = false;
 
     RECT                 m_rcScreen;
-    AnimationVariable    m_animVarZoom;
     std::deque<DrawLine> m_drawLines;
 
-    static CMagnifierWindow m_magnifierWindow;
-    static bool             m_bLensMode;
-    static HWND             m_mainWnd;
+    static HWND m_mainWnd;
 };

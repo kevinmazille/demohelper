@@ -22,7 +22,6 @@
 #include "DPIAware.h"
 #include "DebugOutput.h"
 #include "IniSettings.h"
-#include "RectSelectionWnd.h"
 #include "MemDC.h"
 
 #include <algorithm>
@@ -32,9 +31,7 @@
 extern HINSTANCE g_hInstance; // current instance
 extern HINSTANCE g_hResource; // the resource dll
 
-CMagnifierWindow CMainWindow::m_magnifierWindow = CMagnifierWindow();
-bool             CMainWindow::m_bLensMode       = false;
-HWND             CMainWindow::m_mainWnd         = nullptr;
+HWND CMainWindow::m_mainWnd = nullptr;
 
 bool CMainWindow::RegisterAndCreateWindow()
 {
@@ -90,7 +87,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             m_hwnd = hwnd;
             RegisterHotKeys();
-            m_magnifierWindow.Create(g_hInstance, *this, FALSE);
             m_colorIndex      = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"colorindex", 1));
             m_currentPenWidth = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"currentpenwidth", 6));
         }
@@ -101,79 +97,13 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             WORD key  = MAKEWORD(HIWORD(lParam), LOWORD(lParam));
             key       = HotKey2HotKeyControl(key);
-            WORD zoom = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"zoom", 0x231));
             WORD draw = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"draw", 0x232));
-            WORD lens = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"lens", 0x233));
-            if (key == zoom)
-            {
-                m_bZooming = true;
-                StartZoomingMode();
-            }
-            else if (key == draw)
+            if (key == draw)
             {
                 if (IsWindowVisible(*this))
                     EndPresentationMode();
                 else
                     StartPresentationMode();
-            }
-            else if (key == lens)
-            {
-                SetWindowLong(*this, GWL_EXSTYLE, 0);
-                m_magnifierWindow.Reset();
-                ShowWindow(m_magnifierWindow, SW_HIDE);
-                EndPresentationMode();
-
-                if (m_bLensMode)
-                {
-                    m_bLensMode = false;
-                }
-                else
-                {
-                    m_bLensMode      = true;
-                    auto allMonitors = CIniSettings::Instance().GetInt64(L"Misc", L"allmonitors", 0) != 0;
-                    if (allMonitors)
-                    {
-                        m_rcScreen.left   = GetSystemMetrics(SM_XVIRTUALSCREEN);
-                        m_rcScreen.top    = GetSystemMetrics(SM_YVIRTUALSCREEN);
-                        m_rcScreen.right  = m_rcScreen.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
-                        m_rcScreen.bottom = m_rcScreen.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
-                    }
-                    else
-                    {
-                        POINT pt;
-                        GetCursorPos(&pt);
-                        auto          hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-                        MONITORINFOEX mi       = {};
-                        mi.cbSize              = sizeof(MONITORINFOEX);
-                        GetMonitorInfo(hMonitor, &mi);
-                        m_rcScreen = mi.rcMonitor;
-                    }
-
-                    CRectSelectionWnd selWnd(g_hInstance);
-                    auto              zoomRect = selWnd.Show(*this, m_rcScreen, static_cast<float>(m_rcScreen.right - m_rcScreen.left) / static_cast<float>(m_rcScreen.bottom - m_rcScreen.top));
-                    CloseWindow(selWnd);
-                    DestroyWindow(selWnd);
-                    if (!IsRectEmpty(&zoomRect))
-                    {
-                        StartPresentationMode();
-                        m_bLensMode = true;
-                        SetWindowLong(*this, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT);
-                        SetLayeredWindowAttributes(*this, 0, 255, LWA_ALPHA);
-                        SetWindowPos(m_magnifierWindow, HWND_TOP, m_rcScreen.left, m_rcScreen.top, m_rcScreen.right - m_rcScreen.left, m_rcScreen.bottom - m_rcScreen.top,
-                                     SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOACTIVATE);
-                        m_magnifierWindow.SetSourceRect(zoomRect);
-                        ::SetTimer(*this, TIMER_ID_LENS, 20, nullptr);
-                        SetWindowPos(*this, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                    }
-                    else
-                    {
-                        SetWindowLong(*this, GWL_EXSTYLE, 0);
-                        m_magnifierWindow.Reset();
-                        ShowWindow(m_magnifierWindow, SW_HIDE);
-                        EndPresentationMode();
-                        m_bLensMode = false;
-                    }
-                }
             }
         }
         break;
@@ -209,17 +139,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             HDC          hDc = BeginPaint(*this, &ps);
             {
                 CMemDC memDC(hDc, ps.rcPaint);
-                if (m_bZooming)
-                {
-                    // we're zooming,
-                    // just stretch the part of the original window around the mouse pointer
-                    POINT pt;
-                    auto  msgPos = GetMessagePos();
-                    pt.x         = GET_X_LPARAM(msgPos);
-                    pt.y         = GET_Y_LPARAM(msgPos);
-                    DrawZoom(memDC, pt);
-                }
-                else
                 {
                     BitBlt(memDC,
                            ps.rcPaint.left,
@@ -308,8 +227,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         case WM_RBUTTONDOWN:
         case WM_LBUTTONDOWN:
         {
-            if (m_bLensMode)
-                break;
             if (m_bTextMode && uMsg == WM_LBUTTONDOWN)
             {
                 if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
@@ -323,31 +240,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                 m_bTextMode = false;
                 InvalidateRect(*this, nullptr, FALSE);
                 break;
-            }
-            if (m_bInlineZoom)
-            {
-                m_ptInlineZoomStartPoint.x = GET_X_LPARAM(lParam);
-                m_ptInlineZoomStartPoint.y = GET_Y_LPARAM(lParam);
-                m_ptInlineZoomEndPoint.x   = GET_X_LPARAM(lParam);
-                m_ptInlineZoomEndPoint.y   = GET_Y_LPARAM(lParam);
-            }
-            if (m_bZooming)
-            {
-                // now make the zoomed window the 'default'
-                HDC   hdc = GetDC(*this);
-                POINT pt;
-                auto  msgPos = GetMessagePos();
-                pt.x         = GET_X_LPARAM(msgPos);
-                pt.y         = GET_Y_LPARAM(msgPos);
-                DrawZoom(hdc, pt);
-                m_bZooming         = false;
-                auto nScreenWidth  = m_rcScreen.right - m_rcScreen.left;
-                auto nScreenHeight = m_rcScreen.bottom - m_rcScreen.top;
-
-                BitBlt(hDesktopCompatibleDC, 0, 0, nScreenWidth, nScreenHeight,
-                       hdc, 0, 0, SRCCOPY);
-                DeleteDC(hdc);
-                InvalidateRect(*this, nullptr, false);
             }
             m_bDrawing = true;
             DrawLine drawLine;
@@ -366,51 +258,13 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         break;
         case WM_RBUTTONUP:
         case WM_LBUTTONUP:
-            if (m_bInlineZoom)
-            {
-                m_bInlineZoom      = false;
-                auto nScreenWidth  = m_rcScreen.right - m_rcScreen.left;
-                auto nScreenHeight = m_rcScreen.bottom - m_rcScreen.top;
-
-                StretchBlt(hDesktopCompatibleDC,
-                           m_rcScreen.left, m_rcScreen.top,
-                           nScreenWidth, nScreenHeight,
-                           hDesktopCompatibleDC,
-                           m_ptInlineZoomStartPoint.x, m_ptInlineZoomStartPoint.y,
-                           abs(m_ptInlineZoomStartPoint.x - m_ptInlineZoomEndPoint.x), abs(m_ptInlineZoomStartPoint.y - m_ptInlineZoomEndPoint.y),
-                           SRCCOPY);
-                UpdateCursor();
-                InvalidateRect(*this, nullptr, false);
-            }
-            else
-            {
-                m_bDrawing              = false;
-                m_lineStartShiftPoint.x = -1;
-                m_lineStartShiftPoint.y = -1;
-            }
+            m_bDrawing              = false;
+            m_lineStartShiftPoint.x = -1;
+            m_lineStartShiftPoint.y = -1;
             break;
         case WM_MOUSEMOVE:
         {
-            if (m_bInlineZoom)
-            {
-                if ((m_ptInlineZoomStartPoint.x >= 0) && (m_ptInlineZoomStartPoint.y >= 0) &&
-                    (m_ptInlineZoomEndPoint.x >= 0) && (m_ptInlineZoomEndPoint.y >= 0))
-                {
-                    HDC hDC = GetDC(*this);
-                    SetROP2(hDC, R2_NOT);
-                    SelectObject(hDC, GetStockObject(NULL_BRUSH));
-                    Rectangle(hDC, m_ptInlineZoomStartPoint.x, m_ptInlineZoomStartPoint.y, m_ptInlineZoomEndPoint.x, m_ptInlineZoomEndPoint.y);
-                    m_ptInlineZoomEndPoint.x = GET_X_LPARAM(lParam);
-                    m_ptInlineZoomEndPoint.y = GET_Y_LPARAM(lParam);
-                    Rectangle(hDC, m_ptInlineZoomStartPoint.x, m_ptInlineZoomStartPoint.y, m_ptInlineZoomEndPoint.x, m_ptInlineZoomEndPoint.y);
-                    ReleaseDC(*this, hDC);
-                }
-            }
-            else if (m_bZooming)
-            {
-                InvalidateRect(*this, nullptr, false);
-            }
-            else if (m_bTextMode)
+            if (m_bTextMode)
             {
                 if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
                 {
@@ -555,43 +409,19 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                 InvalidateRect(*this, nullptr, FALSE);
                 break;
             }
-            if (m_bZooming)
+            if (wParam & MK_CONTROL)
             {
                 if (zDelta > 0)
-                {
-                    m_zoomFactor += 0.2f;
-                    if (m_zoomFactor > 4.0f)
-                        m_zoomFactor = 4.0f;
-                }
+                    DoCommand(ID_CMD_DECREASE);
                 else
-                {
-                    m_zoomFactor -= 0.2f;
-                    if (m_zoomFactor < 1.0f)
-                        m_zoomFactor = 1.0f;
-                }
-                auto transZoom  = Animator::Instance().CreateLinearTransition(m_animVarZoom, 0.3, m_zoomFactor);
-                auto storyBoard = Animator::Instance().CreateStoryBoard();
-                storyBoard->AddTransition(m_animVarZoom.m_animVar, transZoom);
-                Animator::Instance().RunStoryBoard(storyBoard, [this]() {
-                    InvalidateRect(*this, nullptr, false);
-                });
+                    DoCommand(ID_CMD_INCREASE);
             }
             else
             {
-                if (wParam & MK_CONTROL)
-                {
-                    if (zDelta > 0)
-                        DoCommand(ID_CMD_DECREASE);
-                    else
-                        DoCommand(ID_CMD_INCREASE);
-                }
+                if (zDelta > 0)
+                    DoCommand(ID_CMD_PREVCOLOR);
                 else
-                {
-                    if (zDelta > 0)
-                        DoCommand(ID_CMD_PREVCOLOR);
-                    else
-                        DoCommand(ID_CMD_NEXTCOLOR);
-                }
+                    DoCommand(ID_CMD_NEXTCOLOR);
             }
             InvalidateRect(*this, nullptr, false);
         }
@@ -601,11 +431,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             {
                 KillTimer(*this, TIMER_ID_DRAW);
                 StartPresentationMode();
-            }
-            else if (wParam == TIMER_ID_ZOOM)
-            {
-                KillTimer(*this, TIMER_ID_ZOOM);
-                StartZoomingMode();
             }
             else if (wParam == TIMER_ID_FADE)
             {
@@ -633,11 +458,6 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                 }
                 if (doRedraw)
                     InvalidateRect(*this, nullptr, false);
-            }
-            else if (wParam == TIMER_ID_LENS)
-            {
-                m_magnifierWindow.UpdateMagnifier();
-                SetWindowPos(*this, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
             }
             break;
         case WM_DESTROY:
@@ -706,25 +526,10 @@ bool CMainWindow::StartPresentationMode()
         ReleaseDC(nullptr, hDesktopDC);
     else
         DeleteDC(hDesktopDC);
-    if (m_bLensMode)
-    {
-        SetWindowLong(*this, GWL_EXSTYLE, 0);
-        m_magnifierWindow.Reset();
-        ShowWindow(m_magnifierWindow, SW_HIDE);
-        m_bLensMode = false;
-    }
-    if (!m_bZooming)
-    {
-        if (m_hCursor)
-            DestroyCursor(m_hCursor);
-        m_hCursor         = CreateDrawCursor(m_colors[m_colorIndex], std::max(2, m_currentPenWidth));
-        m_hPreviousCursor = SetCursor(m_hCursor);
-    }
-    else
-    {
-        SetCursor(LoadCursor(nullptr, IDC_ARROW));
-    }
-    m_bInlineZoom = false;
+    if (m_hCursor)
+        DestroyCursor(m_hCursor);
+    m_hCursor         = CreateDrawCursor(m_colors[m_colorIndex], std::max(2, m_currentPenWidth));
+    m_hPreviousCursor = SetCursor(m_hCursor);
 
     m_fadeSeconds = static_cast<int>(CIniSettings::Instance().GetInt64(L"Draw", L"fadeseconds", 0));
     if (m_fadeSeconds > 0)
@@ -743,7 +548,6 @@ bool CMainWindow::EndPresentationMode()
     DeleteDC(hDesktopCompatibleDC);
     m_drawLines.clear();
     m_bDrawing  = false;
-    m_bZooming  = false;
     m_bTextMode = false;
     SetCursor(m_hPreviousCursor);
     if (m_hCursor)
@@ -751,8 +555,6 @@ bool CMainWindow::EndPresentationMode()
         DestroyCursor(m_hCursor);
         m_hCursor = nullptr;
     }
-    m_bInlineZoom = false;
-    m_zoomFactor  = 1.2f;
     CIniSettings::Instance().SetInt64(L"Draw", L"colorindex", m_colorIndex);
     CIniSettings::Instance().SetInt64(L"Draw", L"currentpenwidth", m_currentPenWidth);
     return true;
@@ -760,66 +562,14 @@ bool CMainWindow::EndPresentationMode()
 
 void CMainWindow::RegisterHotKeys()
 {
-    WORD zoom = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"zoom", 0x231));
     WORD draw = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"draw", 0x232));
-    WORD lens = static_cast<WORD>(CIniSettings::Instance().GetInt64(L"HotKeys", L"lens", 0x233));
-    zoom      = HotKeyControl2HotKey(zoom);
     draw      = HotKeyControl2HotKey(draw);
-    lens      = HotKeyControl2HotKey(lens);
 
     RegisterHotKey(*this, DRAW_HOTKEY, HIBYTE(draw), LOBYTE(draw));
-    RegisterHotKey(*this, ZOOM_HOTKEY, HIBYTE(zoom), LOBYTE(zoom));
-    RegisterHotKey(*this, LENS_HOTKEY, HIBYTE(lens), LOBYTE(lens));
-}
-
-bool CMainWindow::StartZoomingMode()
-{
-    m_bZooming      = true;
-    m_zoomFactor    = 1.2f;
-    auto transZoom  = Animator::Instance().CreateLinearTransition(m_animVarZoom, 0.5, m_zoomFactor);
-    auto storyBoard = Animator::Instance().CreateStoryBoard();
-    storyBoard->AddTransition(m_animVarZoom.m_animVar, transZoom);
-    Animator::Instance().RunStoryBoard(storyBoard, [this]() {
-        InvalidateRect(*this, nullptr, false);
-    });
-    StartPresentationMode();
-    return true;
-}
-
-bool CMainWindow::EndZoomingMode()
-{
-    m_bZooming = false;
-    EndPresentationMode();
-    return true;
-}
-
-bool CMainWindow::DrawZoom(HDC hdc, POINT pt)
-{
-    // cursor pos is in screen coordinates - just what we need since our window covers the whole screen.
-    // to zoom, we need to stretch the part around the cursor to the full screen
-    // zoomfactor 1 = whole screen
-    // zoomfactor 2 = quarter screen to fullscreen
-    auto cx          = m_rcScreen.right - m_rcScreen.left;
-    auto cy          = m_rcScreen.bottom - m_rcScreen.top;
-    auto zoomFactor  = Animator::GetValue(m_animVarZoom);
-    auto zoomWindowX = static_cast<long>(static_cast<double>(cx) / zoomFactor);
-    auto zoomWindowY = static_cast<long>(static_cast<double>(cy) / zoomFactor);
-
-    // adjust the cursor position to the zoom factor
-    ScreenToClient(*this, &pt);
-    POINT resPt;
-    resPt.x = pt.x * (cx - zoomWindowX) / cx;
-    resPt.y = pt.y * (cy - zoomWindowY) / cy;
-
-    return !!StretchBlt(hdc, 0, 0, cx, cy, hDesktopCompatibleDC, resPt.x, resPt.y, zoomWindowX, zoomWindowY, SRCCOPY);
 }
 
 bool CMainWindow::UpdateCursor()
 {
-    if (m_bZooming)
-    {
-        SetCursor(LoadCursor(nullptr, IDC_ARROW));
-    }
     DestroyCursor(m_hCursor);
     m_hCursor = CreateDrawCursor(m_colors[m_colorIndex], std::max(2, m_currentPenWidth));
     if (m_hCursor)
@@ -830,14 +580,3 @@ bool CMainWindow::UpdateCursor()
     return false;
 }
 
-bool CMainWindow::StartInlineZoom()
-{
-    m_bInlineZoom = true;
-    HCURSOR hCur  = LoadCursor(nullptr, IDC_CROSS);
-    SetCursor(hCur);
-    m_ptInlineZoomStartPoint.x = -1;
-    m_ptInlineZoomStartPoint.y = -1;
-    m_ptInlineZoomEndPoint.x   = -1;
-    m_ptInlineZoomEndPoint.y   = -1;
-    return true;
-}

@@ -44,12 +44,8 @@ LRESULT CMainWindow::DoCommand(int id)
                 RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
                 break;
             }
-            if (!m_bLensMode)
-            {
-                m_bZooming = false;
-                EndPresentationMode();
-                UpdateCursor();
-            }
+            EndPresentationMode();
+            UpdateCursor();
             break;
         case ID_CMD_UNDOLINE:
             m_bDrawing = false;
@@ -66,16 +62,8 @@ LRESULT CMainWindow::DoCommand(int id)
         }
         break;
         case ID_CMD_INCREASE:
-            if (m_bZooming)
+            if (!m_drawLines.empty())
             {
-                m_zoomFactor += 0.2f;
-                if (m_zoomFactor > 4.0f)
-                    m_zoomFactor = 4.0f;
-                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-            }
-            else if (!m_drawLines.empty())
-            {
-                // increase pen size
                 if (m_currentPenWidth < 32)
                 {
                     m_currentPenWidth++;
@@ -85,16 +73,8 @@ LRESULT CMainWindow::DoCommand(int id)
             UpdateCursor();
             break;
         case ID_CMD_DECREASE:
-            if (m_bZooming)
+            if (!m_drawLines.empty())
             {
-                m_zoomFactor -= 0.2f;
-                if (m_zoomFactor < 1.0f)
-                    m_zoomFactor = 1.0f;
-                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-            }
-            else if (!m_drawLines.empty())
-            {
-                // decrease pen size
                 if (m_currentPenWidth > 1)
                 {
                     m_currentPenWidth--;
@@ -195,20 +175,6 @@ LRESULT CMainWindow::DoCommand(int id)
             }
             UpdateCursor();
             break;
-        case ID_CMD_ACCEPT:
-            if (m_bZooming)
-            {
-                m_bZooming = false;
-                // now make the zoomed window the 'default'
-                HDC   hdc = GetDC(*this);
-                POINT pt;
-                GetCursorPos(&pt);
-                DrawZoom(hdc, pt);
-                DeleteDC(hdc);
-                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
-                UpdateCursor();
-            }
-            break;
         case IDM_EXIT:
             Shell_NotifyIcon(NIM_DELETE, &niData);
             ::PostQuitMessage(0);
@@ -216,8 +182,6 @@ LRESULT CMainWindow::DoCommand(int id)
         case ID_TRAYCONTEXT_OPTIONS:
         {
             UnregisterHotKey(*this, DRAW_HOTKEY);
-            UnregisterHotKey(*this, ZOOM_HOTKEY);
-            UnregisterHotKey(*this, LENS_HOTKEY);
             DialogBox(hResource, MAKEINTRESOURCE(IDD_OPTIONS), *this, reinterpret_cast<DLGPROC>(OptionsDlgProc));
             RegisterHotKeys();
         }
@@ -225,14 +189,8 @@ LRESULT CMainWindow::DoCommand(int id)
         case ID_TRAYCONTEXT_DRAW:
             SetTimer(*this, TIMER_ID_DRAW, 300, nullptr);
             break;
-        case ID_TRAYCONTEXT_ZOOM:
-            SetTimer(*this, TIMER_ID_ZOOM, 300, nullptr);
-            break;
-        case ID_CMD_INLINEZOOM:
-            StartInlineZoom();
-            break;
         case ID_CMD_TEXTMODE:
-            if (!m_bTextMode && !m_bZooming)
+            if (!m_bTextMode)
             {
                 POINT pt;
                 GetCursorPos(&pt);
