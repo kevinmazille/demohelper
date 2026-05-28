@@ -36,6 +36,14 @@ LRESULT CMainWindow::DoCommand(int id)
                 m_currentAlpha = 255;
             break;
         case ID_CMD_QUITMODE:
+            if (m_bTextMode)
+            {
+                m_bTextMode = false;
+                if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
+                    m_drawLines.pop_back();
+                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
+                break;
+            }
             if (!m_bLensMode)
             {
                 m_bZooming = false;
@@ -261,6 +269,27 @@ LRESULT CMainWindow::DoCommand(int id)
             break;
         case ID_CMD_INLINEZOOM:
             StartInlineZoom();
+            break;
+        case ID_CMD_TEXTMODE:
+            if (!m_bTextMode && !m_bZooming)
+            {
+                POINT pt;
+                GetCursorPos(&pt);
+                ScreenToClient(*this, &pt);
+
+                DrawLine line;
+                line.lineType       = LineType::Text;
+                line.colorIndex     = m_colorIndex;
+                line.penWidth       = m_currentPenWidth;
+                line.alpha          = 255;
+                line.fontSize       = m_currentPenWidth * 4;
+                line.lineStartPoint = Gdiplus::Point(pt.x, pt.y);
+                m_drawLines.push_back(line);
+
+                m_bTextMode = true;
+                m_bDrawing  = false;
+                RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
+            }
             break;
         case ID_CMD_CLEARSCREEN:
         {

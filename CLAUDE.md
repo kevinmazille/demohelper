@@ -53,21 +53,18 @@ Voir [docs/modifications.md](docs/modifications.md).
 
 ## État actuel — pour reprendre
 
-**Branche active : `feature/text-mode`** (créée, vide pour l'instant —
-prête à recevoir l'implémentation du mode texte).
+**Version courante : 2.2.0** — mode texte intégré à `main` du fork.
 
 Acquis :
+- Mode texte (touche `Q`) implémenté et validé interactivement
+  (voir [docs/modifications.md](docs/modifications.md#réalisé--mode-texte-featuretext-mode--mergé-dans-main-v220))
 - Build MSVC v143 vérifié OK (`build.bat` produit
   `bin/Release/x64/DemoHelper.exe` ~400 KB)
-- Exe testé en interactif : tous les modes (Draw/Zoom/Lens) fonctionnent
 - Setup git : `origin` = fork perso, `upstream` = stefankueng/demohelper
-- Commit initial sur `main` poussé sur le fork (`fac329b`)
-- Code source intact : aucune modification appliquée à ce stade
+- Branche `feature/text-mode` conservée pour historique, fusionnée dans `main`
 
-Prochaine étape : implémenter le mode texte selon le plan dans
-[docs/modifications.md](docs/modifications.md#en-cours--mode-texte-featuretext-mode).
-À décider à la reprise : implémentation en un seul commit
-(plus rapide) ou par paliers avec build à chaque étape (plus sûr).
+Prochaine étape : à décider — soit nouvelle feature dans une branche dédiée,
+soit polish du mode texte (positionnement, multi-lignes, etc.).
 
 ## Pièges à connaître (env de l'utilisateur)
 

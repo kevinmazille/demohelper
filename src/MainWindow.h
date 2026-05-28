@@ -30,6 +30,7 @@
 #include <shellapi.h>
 #include <vector>
 #include <deque>
+#include <string>
 
 #define DRAW_HOTKEY 100
 #define ZOOM_HOTKEY 101
@@ -49,7 +50,8 @@ enum class LineType
     Straight,
     Arrow,
     Rectangle,
-    Ellipse
+    Ellipse,
+    Text
 };
 
 enum class OverlayPosition
@@ -95,6 +97,9 @@ public:
 
     int penWidth   = 1;
     int colorIndex = 0;
+
+    std::wstring text;
+    int          fontSize = 24;
 };
 
 class CMainWindow : public CWindow
@@ -141,6 +146,8 @@ public:
     ~CMainWindow(){};
 
     bool RegisterAndCreateWindow();
+
+    bool IsInTextMode() const { return m_bTextMode; }
 
 protected:
     /// the message handler for this window
@@ -198,6 +205,8 @@ protected:
     bool  m_bInlineZoom;
     POINT m_ptInlineZoomStartPoint;
     POINT m_ptInlineZoomEndPoint;
+
+    bool m_bTextMode = false;
 
     RECT                 m_rcScreen;
     AnimationVariable    m_animVarZoom;

@@ -1,13 +1,13 @@
 # Plan des modifications
 
-## En cours : Mode texte (`feature/text-mode`)
+## Réalisé : Mode texte (`feature/text-mode` → mergé dans main, v2.2.0)
 
 ### Spec
 
 Permet d'écrire du texte directement à l'écran depuis le mode draw.
 
 **Workflow** :
-1. En mode Draw, appuyer sur `I` → entre en mode texte
+1. En mode Draw, appuyer sur `Q` → entre en mode texte
 2. Le curseur de saisie suit la souris **en permanence**
 3. Frappe libre → les caractères s'affichent attachés à la souris,
    couleur = `m_colorIndex` actif au moment d'entrer en mode texte
@@ -18,7 +18,7 @@ Permet d'écrire du texte directement à l'écran depuis le mode draw.
    puis **on sort du mode texte**
 7. **Esc** → annule le texte en cours (rien n'est posé) et sort du mode texte
 
-Pour taper un nouveau texte ailleurs, ré-appuyer sur `I`.
+Pour taper un nouveau texte ailleurs, ré-appuyer sur `Q`.
 
 **Pendant la saisie** : tous les autres raccourcis (0-9, e, c, m, t, etc.)
 sont désactivés pour ne pas interférer avec la frappe. La table
@@ -57,7 +57,7 @@ d'accélérateurs est court-circuitée tant que `m_bTextMode == true`.
   caractères arrivent en `WM_CHAR`
 
 **`DemoHelper.rc`** :
-- Ajouter accélérateur `"i", ID_CMD_TEXTMODE, ASCII, NOINVERT`
+- Ajouter accélérateur `"q", ID_CMD_TEXTMODE, ASCII, NOINVERT`
 
 **`resource.h`** :
 - Ajouter `#define ID_CMD_TEXTMODE …` (prochain ID libre)
@@ -69,18 +69,28 @@ d'accélérateurs est court-circuitée tant que `m_bTextMode == true`.
   - Gérer `ID_CMD_QUITMODE` (Esc) pour annuler le texte en cours
     avant de sortir du mode draw
 
-### Tests manuels
+### Tests manuels (validés)
 
-- [ ] `I` en mode draw entre en mode texte
-- [ ] Tape "Hello" → s'affiche, suit la souris
-- [ ] Backspace retire les caractères
-- [ ] Molette change la taille
-- [ ] Clic pose le texte et sort du mode texte
-- [ ] Re-appuyer sur `I` permet de taper un nouveau texte ailleurs
-- [ ] Esc annule, le texte courant disparaît, mode texte off
-- [ ] Pendant frappe, taper "extra" ne déclenche pas clear/marker
-- [ ] Couleur du texte = couleur active au moment du `I`
-- [ ] Le texte posé persiste lors du undo (Backspace en mode draw classique)
+- [x] `Q` en mode draw entre en mode texte
+- [x] Tape "Hello" → s'affiche, suit la souris
+- [x] Backspace retire les caractères
+- [x] Molette change la taille
+- [x] Clic pose le texte et sort du mode texte
+- [x] Re-appuyer sur `Q` permet de taper un nouveau texte ailleurs
+- [x] Esc annule, le texte courant disparaît, mode texte off
+- [x] Pendant frappe, taper "extra" ne déclenche pas clear/marker
+- [x] Couleur du texte = couleur active au moment du `Q`
+- [x] Le texte posé persiste lors du undo (Backspace en mode draw classique)
+
+### Notes d'implémentation
+
+- Raccourci final : `Q` (au lieu de `I` initialement prévu — plus accessible
+  près de la zone Ctrl+Shift).
+- Skip de `TranslateAccelerator` quand `m_bTextMode == true` via le getter
+  public `CMainWindow::IsInTextMode()` (sinon `Q`, `Backspace`, etc. sont
+  capturés par la table d'accélérateurs avant `WM_CHAR`).
+- `m_bTextMode` est remis à `false` dans `EndPresentationMode()` pour
+  garantir un état propre à chaque sortie du mode draw.
 
 ## Idées futures
 

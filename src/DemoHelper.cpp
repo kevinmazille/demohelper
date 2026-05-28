@@ -79,7 +79,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
             // Main message loop:
             while (GetMessage(&msg, nullptr, 0, 0))
             {
-                if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+                if (trayWindow.IsInTextMode() || !TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
                 {
                     TranslateMessage(&msg);
                     DispatchMessage(&msg);

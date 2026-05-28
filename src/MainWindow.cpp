@@ -648,6 +648,29 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         break;
         case WM_ERASEBKGND:
             return 1; // don't erase the background!
+        case WM_CHAR:
+        {
+            if (m_bTextMode && !m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
+            {
+                auto&   line = m_drawLines.back();
+                wchar_t ch   = static_cast<wchar_t>(wParam);
+                if (ch == VK_BACK)
+                {
+                    if (!line.text.empty())
+                        line.text.pop_back();
+                }
+                else if (ch == VK_ESCAPE || ch == VK_RETURN)
+                {
+                    // ignore — handled elsewhere
+                }
+                else if (ch >= 0x20)
+                {
+                    line.text.push_back(ch);
+                }
+                InvalidateRect(*this, nullptr, FALSE);
+            }
+        }
+        break;
         case WM_PAINT:
         {
             ProfileTimer profiler(L"WM_PAINT");
@@ -733,6 +756,16 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
                                         graphics.DrawEllipse(&pen, startPt.X, startPt.Y, width, height);
                                     }
                                     break;
+                                case LineType::Text:
+                                    if (!line.text.empty() && (line.lineStartPoint.X >= 0) && (line.lineStartPoint.Y >= 0))
+                                    {
+                                        Gdiplus::FontFamily fontFamily(L"Segoe UI");
+                                        Gdiplus::Font       font(&fontFamily, static_cast<Gdiplus::REAL>(line.fontSize), Gdiplus::FontStyleRegular, Gdiplus::UnitPixel);
+                                        Gdiplus::SolidBrush brush(color);
+                                        Gdiplus::PointF     origin(static_cast<Gdiplus::REAL>(line.lineStartPoint.X), static_cast<Gdiplus::REAL>(line.lineStartPoint.Y));
+                                        graphics.DrawString(line.text.c_str(), static_cast<INT>(line.text.size()), &font, origin, &brush);
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -746,6 +779,20 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             if (m_bLensMode)
                 break;
+            if (m_bTextMode && uMsg == WM_LBUTTONDOWN)
+            {
+                if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
+                {
+                    auto& line            = m_drawLines.back();
+                    line.lineStartPoint.X = GET_X_LPARAM(lParam);
+                    line.lineStartPoint.Y = GET_Y_LPARAM(lParam);
+                    if (line.text.empty())
+                        m_drawLines.pop_back();
+                }
+                m_bTextMode = false;
+                InvalidateRect(*this, nullptr, FALSE);
+                break;
+            }
             if (m_bInlineZoom)
             {
                 m_ptInlineZoomStartPoint.x = GET_X_LPARAM(lParam);
@@ -831,6 +878,16 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
             else if (m_bZooming)
             {
                 InvalidateRect(*this, nullptr, false);
+            }
+            else if (m_bTextMode)
+            {
+                if (!m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
+                {
+                    auto& line            = m_drawLines.back();
+                    line.lineStartPoint.X = GET_X_LPARAM(lParam);
+                    line.lineStartPoint.Y = GET_Y_LPARAM(lParam);
+                    InvalidateRect(*this, nullptr, FALSE);
+                }
             }
             else if (m_bDrawing)
             {
@@ -962,6 +1019,16 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
         case WM_MOUSEWHEEL:
         {
             int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+            if (m_bTextMode && !m_drawLines.empty() && m_drawLines.back().lineType == LineType::Text)
+            {
+                auto& line = m_drawLines.back();
+                if (zDelta > 0)
+                    line.fontSize = std::min(line.fontSize + 4, 256);
+                else
+                    line.fontSize = std::max(line.fontSize - 4, 8);
+                InvalidateRect(*this, nullptr, FALSE);
+                break;
+            }
             if (m_bZooming)
             {
                 if (zDelta > 0)
@@ -1183,8 +1250,9 @@ bool CMainWindow::EndPresentationMode()
     DeleteObject(hDesktopCompatibleBitmap);
     DeleteDC(hDesktopCompatibleDC);
     m_drawLines.clear();
-    m_bDrawing = false;
-    m_bZooming = false;
+    m_bDrawing  = false;
+    m_bZooming  = false;
+    m_bTextMode = false;
     SetCursor(m_hPreviousCursor);
     if (m_hCursor)
     {

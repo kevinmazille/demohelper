@@ -73,6 +73,7 @@ BEGIN
     "9",            ID_CMD_COLOR9,          ASCII,  NOINVERT
     VK_DOWN,        ID_CMD_DECREASE,        VIRTKEY, NOINVERT
     VK_UP,          ID_CMD_INCREASE,        VIRTKEY, NOINVERT
+    "q",            ID_CMD_TEXTMODE,        ASCII,  NOINVERT
     "z",            ID_CMD_INLINEZOOM,      ASCII,  NOINVERT
     VK_RIGHT,       ID_CMD_NEXTCOLOR,       VIRTKEY, NOINVERT
     VK_LEFT,        ID_CMD_PREVCOLOR,       VIRTKEY, NOINVERT
