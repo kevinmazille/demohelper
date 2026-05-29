@@ -818,6 +818,56 @@ static void EnsureDirectory(const std::wstring& path)
     CreateDirectoryW(path.c_str(), nullptr);
 }
 
+// Strip characters Windows forbids in file/folder names, plus trim.
+static std::wstring SanitizeForPath(std::wstring s)
+{
+    const std::wstring forbidden = L"\\/:*?\"<>|";
+    for (auto& ch : s)
+    {
+        if (forbidden.find(ch) != std::wstring::npos || ch < 0x20)
+            ch = L'_';
+    }
+    // Trim leading/trailing spaces and dots (illegal as trailing on Windows).
+    size_t start = s.find_first_not_of(L" .");
+    size_t end   = s.find_last_not_of(L" .");
+    if (start == std::wstring::npos)
+        return L"";
+    return s.substr(start, end - start + 1);
+}
+
+// Find the active Google Meet tab and return the meeting name, or empty.
+// Chrome window titles follow "Meet - <name> - Google Chrome".
+static BOOL CALLBACK FindMeetProc(HWND hwnd, LPARAM lParam)
+{
+    if (!IsWindowVisible(hwnd))
+        return TRUE;
+    int len = GetWindowTextLengthW(hwnd);
+    if (len <= 0)
+        return TRUE;
+    std::wstring title(len + 1, L'\0');
+    GetWindowTextW(hwnd, &title[0], len + 1);
+    title.resize(len);
+
+    const std::wstring prefix = L"Meet - ";
+    const std::wstring suffix = L" - Google Chrome";
+    if (title.size() > prefix.size() + suffix.size() &&
+        title.compare(0, prefix.size(), prefix) == 0 &&
+        title.compare(title.size() - suffix.size(), suffix.size(), suffix) == 0)
+    {
+        std::wstring name = title.substr(prefix.size(), title.size() - prefix.size() - suffix.size());
+        *reinterpret_cast<std::wstring*>(lParam) = name;
+        return FALSE; // stop enumeration
+    }
+    return TRUE;
+}
+
+static std::wstring GetMeetName()
+{
+    std::wstring name;
+    EnumWindows(FindMeetProc, reinterpret_cast<LPARAM>(&name));
+    return SanitizeForPath(name);
+}
+
 void CMainWindow::SaveScreenshot()
 {
     if (m_drawLines.empty())
@@ -842,7 +892,7 @@ void CMainWindow::SaveScreenshot()
         RenderAnnotations(graphics);
     }
 
-    // Build the destination folder: %USERPROFILE%\Pictures\DemoHelper
+    // Build the root folder: %USERPROFILE%\Pictures\DemoHelper
     std::wstring baseDir;
     PWSTR        picturesPath = nullptr;
     if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &picturesPath)))
@@ -850,23 +900,51 @@ void CMainWindow::SaveScreenshot()
         baseDir = picturesPath;
         CoTaskMemFree(picturesPath);
     }
-    if (!baseDir.empty())
-        baseDir += L"\\DemoHelper";
-    EnsureDirectory(baseDir);
+    if (baseDir.empty())
+    {
+        SelectObject(hMemDC, hOld);
+        DeleteObject(hBmp);
+        DeleteDC(hMemDC);
+        ReleaseDC(nullptr, hScreenDC);
+        return;
+    }
+    baseDir += L"\\DemoHelper";
 
-    // Timestamped filename: YYYY-MM-DD_HH-MM-SS.png
     SYSTEMTIME st;
     GetLocalTime(&st);
-    wchar_t name[64];
-    swprintf_s(name, L"%04d-%02d-%02d_%02d-%02d-%02d.png",
-               st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
-    std::wstring fullPath = baseDir.empty() ? name : (baseDir + L"\\" + name);
+    wchar_t yyyy[8], ymdDash[16], hms[16], mm[4], dd[4];
+    swprintf_s(yyyy, L"%04d", st.wYear);
+    swprintf_s(ymdDash, L"%04d-%02d-%02d", st.wYear, st.wMonth, st.wDay);
+    swprintf_s(hms, L"%02d-%02d-%02d.png", st.wHour, st.wMinute, st.wSecond);
+    swprintf_s(mm, L"%02d", st.wMonth);
+    swprintf_s(dd, L"%02d", st.wDay);
 
+    std::wstring client = GetMeetName();
+
+    // Encode once into a reusable Gdiplus::Bitmap, then save to each tree.
     CLSID pngClsid;
     if (GetPngEncoderClsid(&pngClsid) >= 0)
     {
         Gdiplus::Bitmap bitmap(hBmp, nullptr);
-        bitmap.Save(fullPath.c_str(), &pngClsid, nullptr);
+
+        // Tree 2 — by date: Par date\YYYY-MM-DD\[<client>\]HH-MM-SS.png
+        // Always written (client optional). This is the fallback when no
+        // Meet name is detected.
+        std::wstring byDate = baseDir + L"\\Par date\\" + ymdDash;
+        if (!client.empty())
+            byDate += L"\\" + client;
+        EnsureDirectory(byDate);
+        bitmap.Save((byDate + L"\\" + hms).c_str(), &pngClsid, nullptr);
+
+        // Tree 1 — by client: Par client\<client>\YYYY\MM\DD\HH-MM-SS.png
+        // Only written when a client name was detected.
+        if (!client.empty())
+        {
+            std::wstring byClient = baseDir + L"\\Par client\\" + client +
+                                    L"\\" + yyyy + L"\\" + mm + L"\\" + dd;
+            EnsureDirectory(byClient);
+            bitmap.Save((byClient + L"\\" + hms).c_str(), &pngClsid, nullptr);
+        }
     }
 
     SelectObject(hMemDC, hOld);
