@@ -237,18 +237,27 @@ LRESULT CMainWindow::DoCommand(int id)
         break;
         case ID_CMD_CYCLEBOARD:
         {
-            // N drops a board frame *under* the existing annotations and
-            // cycles A ↔ B. Unlike a fresh draw, annotations are always
-            // preserved (the frame is painted into the background DC, the
-            // drawings are re-rendered on top in WM_PAINT).
+            // Leaving the pristine Transparent state (via B or N) wipes the
+            // annotations for a fresh canvas; any later switch — B↔N, N↔N,
+            // B↔B — preserves them. The frame is painted into the background
+            // DC, so existing drawings stay rendered on top in WM_PAINT.
+            bool leavingTransparent = (m_theme == Theme::Transparent);
             if (m_boardStyle == BoardStyle::None)
                 m_boardStyle = BoardStyle::FrameA;
             else
                 m_boardStyle = (m_boardStyle == BoardStyle::FrameA) ? BoardStyle::FrameB : BoardStyle::FrameA;
             m_theme = (m_boardStyle == BoardStyle::FrameA) ? Theme::Light : Theme::Dark;
             ApplyTheme();
-            for (auto& line : m_drawLines)
-                line.alpha = m_currentAlpha;
+            if (leavingTransparent)
+            {
+                m_bDrawing = false;
+                m_drawLines.clear();
+            }
+            else
+            {
+                for (auto& line : m_drawLines)
+                    line.alpha = m_currentAlpha;
+            }
             PaintThemeBackground();
             UpdateCursor();
             RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
