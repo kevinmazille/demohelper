@@ -144,14 +144,18 @@ gardant ~95 % de zone de dessin libre. Calqué sur la logique du cycle
 
 ### Comportement
 
-- **1er `N`** depuis Transparent → wipe des annotations + **cadre A**
-  (whiteboard clair : dégradé papier, mat gris, liseré clay arrondi,
-  équerres de coin). Force le thème Light.
-- **`N` suivant** → cycle **A ↔ B**. Le **cadre B** est un tableau ardoise
-  sombre (cadre biseauté, canvas slate en dégradé radial, baseline clay).
-  Force le thème Dark, recolore les annotations comme le fait `B`.
+- **`N`** applique le **cadre A** (whiteboard clair : dégradé papier, mat
+  gris, liseré clay arrondi, équerres de coin), puis cycle **A ↔ B**. Le
+  **cadre B** est un tableau ardoise sombre (cadre biseauté, canvas slate
+  en dégradé radial, baseline clay). Le cadre est peint **sous** les
+  annotations (rendu dans le DC de fond, dessins re-rendus par-dessus en
+  `WM_PAINT`).
+- **Règle de wipe partagée B/N** : seul le passage qui **quitte l'état
+  Transparent pristine** (Transparent → B *ou* Transparent → N) vide les
+  annotations pour une toile fraîche. Tout switch ultérieur (B↔N, N↔N,
+  B↔B) **préserve** les annotations. `E` reste l'effacement explicite.
 - **`B`** remet `m_boardStyle = None` → revient aux fonds unis sans cadre.
-- **Esc + relance** → repart en Transparent sans cadre.
+- **Esc + relance** → repart en Transparent pristine sans cadre.
 
 ### Implémentation
 
@@ -171,8 +175,58 @@ gardant ~95 % de zone de dessin libre. Calqué sur la logique du cycle
 Concepts SVG + PNG d'origine dans `background image/` (A = whiteboard,
 B = slate, C = minimal non retenu). Le code GDI+ reproduit A et B.
 
+## Réalisé : Auto-screenshot à la sortie (`feature/auto-screenshot` → mergé dans main)
+
+Capture automatique de l'écran annoté en sortie du mode draw, rangée par
+client (nom du Meet) et par date.
+
+### Comportement
+
+- **Déclenchement** : à chaque sortie du mode draw — **Esc** *ou* re-appui
+  sur le **hotkey de dessin** — si `m_drawLines` non vide. Rien dessiné →
+  rien sauvé.
+- **Contenu** : fond du thème courant (fill B/N, ou bureau si Transparent)
+  **+ annotations** recomposées par-dessus.
+- **Racine** : `%USERPROFILE%\Pictures\DemoHelper\`.
+- **Double arborescence** (même PNG écrit aux deux endroits si client connu) :
+  - `Par client\<client>\AAAA-MM-JJ\HH-MM-SS.png`
+  - `Par date\AAAA-MM-JJ\<client>\HH-MM-SS.png`
+- **Sans client détecté** → arbre date seulement :
+  `Par date\AAAA-MM-JJ\HH-MM-SS.png` (rien dans `Par client`).
+- `<client>` = nom extrait du titre de la fenêtre Chrome active
+  (`Meet - <nom> - Google Chrome`), caractères interdits Windows nettoyés.
+
+### Implémentation
+
+- Refactor : boucle de rendu des annotations extraite de `WM_PAINT` dans
+  `RenderAnnotations(Gdiplus::Graphics&)`, réutilisée par le paint et la
+  capture (commit séparé, comportement inchangé).
+- `SaveScreenshot()` (`MainWindow.cpp`) : compose fond
+  (`hDesktopCompatibleDC`) + `RenderAnnotations` dans un bitmap mémoire,
+  encode en PNG via l'encodeur GDI+ (`GetPngEncoderClsid` +
+  `Bitmap::Save`). Appelée en tête de `EndPresentationMode()` (avant
+  libération des DC) → couvre Esc et hotkey d'un coup.
+- `GetMeetName()` : `EnumWindows` + match du pattern de titre Chrome,
+  `SanitizeForPath()` pour les caractères interdits.
+- `EnsureDirectory()` : création récursive des dossiers.
+- Dossier cible via `SHGetKnownFolderPath(FOLDERID_Pictures)`.
+
+### Détection Meet — notes
+
+Aucune dépendance externe (pas de flag `--remote-debugging`, pas d'API
+Google). Le nom n'est riche que si la réunion est **planifiée/nommée** ;
+réunion instantanée → titre = juste "Meet" → fallback arbre date. Signaux
+secondaires repérés mais non utilisés : caméra/micro en cours d'usage via
+`HKCU\...\CapabilityAccessManager\ConsentStore` (`LastUsedTimeStop == 0`),
+et barre flottante de partage d'écran (fenêtre dédiée) pour distinguer
+"en réunion" de "en train de partager".
+
 ## Idées futures
 
+- **Re-bind des raccourcis autour de Ctrl+Shift** : regrouper les touches
+  les plus utilisées près de la main gauche (zone Ctrl+Shift) pour tout
+  faire d'une main, et afficher un repère visuel de l'état/mode courant
+  quand on commence à taper (savoir où on en est). À concevoir plus tard.
 - **Background custom au clear** : remplacer le blanc par défaut
   (`COLOR_WINDOW`) par une couleur configurable. Extension : permettre
   une image de fond.

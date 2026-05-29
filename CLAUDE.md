@@ -76,13 +76,20 @@ Acquis :
   parallèles, recolore les annotations).
 - Cadres "tableau" via touche `N` (`feature/board-frames`) : cadre A
   (whiteboard clair) ↔ cadre B (slate sombre), dessinés en vectoriel
-  GDI+ dans `PaintBoardFrame()`. Même logique de cycle que `B`.
+  GDI+ dans `PaintBoardFrame()`. Cadre peint sous les annotations.
+  Règle de wipe partagée avec `B` : seul le départ depuis Transparent
+  pristine vide les dessins ; B↔N / N↔N / B↔B préservent.
   Concepts de référence dans `background image/`.
+- Auto-screenshot (`feature/auto-screenshot`) : à la sortie du mode draw
+  (Esc ou hotkey) si annotations, capture fond+dessins en PNG sous
+  `%USERPROFILE%\Pictures\DemoHelper\`, double arbo `Par client\<meet>\
+  AAAA-MM-JJ\` et `Par date\AAAA-MM-JJ\<meet>\`. Nom du client extrait
+  du titre de la fenêtre Chrome `Meet - <nom> - Google Chrome`.
+  `SaveScreenshot()` / `GetMeetName()` dans `MainWindow.cpp`.
 
 Prochaine étape (idées) :
-- Auto-screenshot à l'Esc (sortie du mode draw) → dossier dédié
-- Intégration Google Meet (titre de la fenêtre, MCP) pour ranger les
-  screenshots par client/réunion
+- Re-bind des raccourcis autour de Ctrl+Shift (tout faire d'une main) +
+  repère visuel du mode courant. Voir docs/modifications.md.
 
 ## Pièges à connaître (env de l'utilisateur)
 
