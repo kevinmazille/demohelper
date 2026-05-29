@@ -46,6 +46,7 @@
 #define ID_CMD_REMOVEFIRST              32804
 #define ID_CMD_TEXTMODE                 32805
 #define ID_CMD_TOGGLETHEME              32806
+#define ID_CMD_CYCLEBOARD               32807
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

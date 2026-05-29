@@ -52,6 +52,15 @@ enum class Theme
     Dark        = 2
 };
 
+// Decorative "board" frame painted on top of the theme background.
+// Toggled with the N key, independently of the plain B themes.
+enum class BoardStyle
+{
+    None   = 0, // no frame (plain B themes)
+    FrameA = 1, // light whiteboard: clay liseré, mat, corner ticks
+    FrameB = 2  // dark slate: bevelled frame, clay baseline
+};
+
 class DrawLine
 {
 public:
@@ -118,6 +127,7 @@ protected:
     HCURSOR CreateDrawCursor(COLORREF color, int penwidth);
     void    ApplyTheme();
     void    PaintThemeBackground();
+    void    PaintBoardFrame();
 
     static BOOL CALLBACK OptionsDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam);
     static WORD          HotKeyControl2HotKey(WORD hk);
@@ -154,8 +164,9 @@ protected:
     int  m_oldColorIndex;
     BYTE m_oldAlpha;
 
-    bool  m_bTextMode = false;
-    Theme m_theme     = Theme::Light;
+    bool       m_bTextMode  = false;
+    Theme      m_theme      = Theme::Light;
+    BoardStyle m_boardStyle = BoardStyle::None;
 
     RECT                 m_rcScreen;
     std::deque<DrawLine> m_drawLines;

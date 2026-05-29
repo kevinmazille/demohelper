@@ -478,7 +478,8 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
 
 bool CMainWindow::StartPresentationMode()
 {
-    m_theme = Theme::Transparent;
+    m_theme      = Theme::Transparent;
+    m_boardStyle = BoardStyle::None;
     ApplyTheme();
     int          nScreenWidth  = 0;
     int          nScreenHeight = 0;
@@ -658,4 +659,13 @@ void CMainWindow::PaintThemeBackground()
         FillRect(hDesktopCompatibleDC, &rect, hBrush);
         DeleteObject(hBrush);
     }
+
+    if (m_boardStyle != BoardStyle::None)
+        PaintBoardFrame();
+}
+
+void CMainWindow::PaintBoardFrame()
+{
+    // Decorative frame drawn on top of the theme background. Filled in by
+    // later steps (FrameA = light whiteboard, FrameB = dark slate).
 }

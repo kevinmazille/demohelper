@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Concept B: dark slate board, lighter frame like a presentation chalkboard -->
+  <defs>
+    <radialGradient id="slate" cx="50%" cy="42%" r="75%">
+      <stop offset="0" stop-color="#2a2d31"/>
+      <stop offset="1" stop-color="#202225"/>
+    </radialGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3d42"/>
+      <stop offset="1" stop-color="#2c2e33"/>
+    </linearGradient>
+  </defs>
+  <!-- outer frame -->
+  <rect width="1920" height="1080" fill="url(#frame)"/>
+  <!-- inner bevel highlight -->
+  <rect x="22" y="22" width="1876" height="1036" fill="none" stroke="#4a4d53" stroke-width="2"/>
+  <!-- slate canvas (~95%) -->
+  <rect x="40" y="40" width="1840" height="1000" fill="url(#slate)" rx="4"/>
+  <!-- clay accent baseline (the "tray" of the board) -->
+  <rect x="40" y="1028" width="1840" height="12" fill="#D97757" opacity="0.85"/>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <!-- Concept A: clean whiteboard, light canvas with a thin clay border + corner ticks -->
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fdfdfc"/>
+      <stop offset="1" stop-color="#f4f2ee"/>
+    </linearGradient>
+  </defs>
+  <!-- full canvas -->
+  <rect width="1920" height="1080" fill="url(#paper)"/>
+  <!-- subtle outer mat -->
+  <rect x="0" y="0" width="1920" height="1080" fill="none" stroke="#e7e3dc" stroke-width="28"/>
+  <!-- thin clay liseré framing the ~95% drawing zone -->
+  <rect x="34" y="34" width="1852" height="1012" fill="none" stroke="#D97757" stroke-width="3" rx="6"/>
+  <!-- corner ticks (registration marks) -->
+  <g stroke="#D97757" stroke-width="4" stroke-linecap="round">
+    <path d="M60 34 V70 M34 60 H70"/>
+    <path d="M1860 34 V70 M1886 60 H1850"/>
+    <path d="M60 1046 V1010 M34 1020 H70"/>
+    <path d="M1860 1046 V1010 M1886 1020 H1850"/>
+  </g>
+</svg>

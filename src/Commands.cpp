@@ -229,6 +229,33 @@ LRESULT CMainWindow::DoCommand(int id)
                 for (auto& line : m_drawLines)
                     line.alpha = m_currentAlpha;
             }
+            m_boardStyle = BoardStyle::None;
+            PaintThemeBackground();
+            UpdateCursor();
+            RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);
+        }
+        break;
+        case ID_CMD_CYCLEBOARD:
+        {
+            if (m_boardStyle == BoardStyle::None)
+            {
+                // First N press: wipe annotations and drop onto board A
+                // (a light whiteboard). After that N only toggles A ↔ B,
+                // mirroring the B-key Light ↔ Dark behaviour.
+                m_boardStyle = BoardStyle::FrameA;
+                m_theme      = Theme::Light;
+                m_bDrawing   = false;
+                m_drawLines.clear();
+                ApplyTheme();
+            }
+            else
+            {
+                m_boardStyle = (m_boardStyle == BoardStyle::FrameA) ? BoardStyle::FrameB : BoardStyle::FrameA;
+                m_theme      = (m_boardStyle == BoardStyle::FrameA) ? Theme::Light : Theme::Dark;
+                ApplyTheme();
+                for (auto& line : m_drawLines)
+                    line.alpha = m_currentAlpha;
+            }
             PaintThemeBackground();
             UpdateCursor();
             RedrawWindow(*this, nullptr, nullptr, RDW_INTERNALPAINT | RDW_INVALIDATE);

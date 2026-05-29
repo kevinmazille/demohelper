@@ -72,6 +72,7 @@ BEGIN
     VK_UP,          ID_CMD_INCREASE,        VIRTKEY, NOINVERT
     "q",            ID_CMD_TEXTMODE,        ASCII,  NOINVERT
     "b",            ID_CMD_TOGGLETHEME,     ASCII,  NOINVERT
+    "n",            ID_CMD_CYCLEBOARD,      ASCII,  NOINVERT
     VK_RIGHT,       ID_CMD_NEXTCOLOR,       VIRTKEY, NOINVERT
     VK_LEFT,        ID_CMD_PREVCOLOR,       VIRTKEY, NOINVERT
     "m",            ID_CMD_QUICKTOMARKER,   ASCII,  NOINVERT
